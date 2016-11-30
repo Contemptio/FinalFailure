@@ -1,10 +1,8 @@
 #ifndef ZMK_FM_fast_C
 #define ZMK_FM_fast_C
 
-/*
 #include "eqn.c"
 #include "util.c"
-*/
 #include <float.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -248,8 +246,11 @@ void find_constraints_fast(EQN_T **eqns)
     printf("Solution found in the interval [%.02lf, %.02lf].\n", *min, *max);
 }
 
-void zmk_fast(EQN_T** eqns)
+void zmk_fast_debug(EQN_T** eqns)
 {
+    printf("[ZMK_FAST]: NOT YET IMPLEMENTED.\n");
+    return;
+    
     sort_bubble_equation_fast(eqns);
     divide_equations_fast(eqns, 1);
     // TODO.

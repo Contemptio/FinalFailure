@@ -17,6 +17,7 @@
 #define SCANF_FORMAT "%f %f"
 #define BUF_SIZ (50)
 #define LEN     (5)
+#define VARS    (4)
 
  /**
   * Reads a file into a float array. The file is expected to have an isolated
@@ -101,7 +102,9 @@ equation_t** parse_eqns(char *pathA, char *pathC)
     for (i = 0; i < LEN; ++i)
     {
         pairs[i] = new_equation(d[i][0], d[i][1], d[i][2], d[i][3]);
+        free(d[i]);
     }
+    free(d);
     
     return pairs;
 }
@@ -131,25 +134,27 @@ int main(int argc, char** argv)
     concat(A, "/A");
     concat(c, "/c");
     concat(result, "/result");
-    
+
+    printf("Running ");
     if (argc >= 3) {
         EQN_T** eqns = parse_eqns_numerical(A, c);
 
         if (!strcmp(NAME_FAST, argv[2])) {
-            zmk_fast(eqns);
+            printf("fast.\n");
+            zmk_fast_debug(eqns);
         } else if (!strcmp(NAME_SMALL, argv[2])) {
-            zmk_small(eqns);
+            printf("small.\n");
+            zmk_small_debug(eqns);
         }
+        
+        free_float_matrix(eqns, LEN);
     } else {
+        printf("regular.\n");
         equation_t** eqns = parse_eqns(A, c);
         zmk_fm(eqns);
         int i;
         
-        for (i = 0; i < LEN; ++i)
-        {
-            free_equation(eqns[i]);
-        }
-        free(eqns);
+        free_equations(eqns, LEN);
     }
     
     return 0;

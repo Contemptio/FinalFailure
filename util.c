@@ -6,6 +6,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define EQN_T  float
+#define LEN    (5)
+#define A_POS  (0)
+#define B_POS  (1)
+#define C_POS  (2)
+#define LT_POS (3)
+
 #define BUF_SIZ (50)
 
 void file_close(FILE *file);
@@ -70,24 +77,51 @@ FILE* file_open(char *path)
 }
 
 /**
- *	Prints an array of floating point numbers in the "[a, b, c, ..., n] format."
+ *  Frees a double matrix.
  *
- *	@param arr
- *			The array to print.
- *	@param arr_len
- *			The number of elements in arr.
+ *  @param mat
+ *          The matrix to free.
+ *  @param rows
+ *          The number of rows in the matrix.
  */
-void print_double_array(double* arr, size_t arr_len)
+void free_float_matrix(float** mat, size_t rows)
 {
-	int a;
-	char* pre = "";
-	printf("[");
-	for (a = 0; a < arr_len; ++a)
-	{
-		printf("%s%.02lf", pre, arr[a]);
-		pre = ", ";
-	}
-	println("]");
+    size_t i;
+    for (i = 0; i < rows; ++i)
+    {
+        free(mat[i]);
+    }
+    free(mat);
+}
+
+/**
+ *  Prints a float array.
+ *
+ *  @param eqn
+ *          The float array to print.
+ */
+void print_float_array(EQN_T* eqn)
+{
+    printf("\t%.02fx + %.02fy %c%c %.02f\n", eqn[A_POS],
+        eqn[B_POS], (eqn[LT_POS] ? '<' : '>'), '=', eqn[C_POS]);
+}
+
+/**
+ *  Prints a matrix of floats.
+ *
+ *  @param eqns
+ *          The floats to print.
+ */
+void print_float_matrix(EQN_T** eqns)
+{
+    int i;
+    char* pre = "";
+    printf("[\n");
+    for (i = 0; i < LEN; ++i)
+    {
+        print_float_array(eqns[i]);
+    }
+    println("]");
 }
 
 /**

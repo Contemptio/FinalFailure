@@ -1,8 +1,8 @@
 #ifndef ZMK_FM_C
 #define ZMK_FM_C
 
-// #include "eqn.c"
-// #include "util.c"
+#include "eqn.c"
+#include "util.c"
 #include <float.h>
 #include <stdio.h>
 #include <stdlib.h>
