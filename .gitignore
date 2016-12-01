@@ -1,0 +1,4 @@
+# C-related files.
+*.o
+*.a
+*.exe
