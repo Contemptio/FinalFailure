@@ -42,7 +42,7 @@
  *  @param eqn
  *          The index of the equation which to add to the rest.
  */
-void add_eqn_to_set_fast(EQN_T **eqns, INT_T eqn)
+void add_eqn_to_set_fast(EQN_T **eqns, EQN_T* minEqn)
 {
     // TODO.
     // Save data from eqns[eqn] in local variables and
@@ -50,13 +50,17 @@ void add_eqn_to_set_fast(EQN_T **eqns, INT_T eqn)
     INT_T i;
     for (i = 0; i < LEN; ++i)
     {
-        if (!eqns[i][LT_POS])
+        EQN_T* eqn = eqns[i];
+        if (!eqn[LT_POS])
         {
             continue;
         }
-        eqns[i][A_POS] = eqns[i][A_POS] - eqns[eqn][A_POS];
-        eqns[i][B_POS] = eqns[i][B_POS] - eqns[eqn][B_POS];
-        eqns[i][C_POS] = eqns[i][C_POS] - eqns[eqn][C_POS];
+        EQN_T* a = &eqn[A_POS];
+        EQN_T* b = &eqn[B_POS];
+        EQN_T* c = &eqn[C_POS];
+        *a = *a - minEqn[A_POS];
+        *b = *b - minEqn[B_POS];
+        *c = *c - minEqn[C_POS];
     }
 }
  
@@ -78,19 +82,20 @@ INT_T minimum_equation_fast(EQN_T** eqns)
         // TODO.
         // Manually check source files to see which comparisons hold true
         // the most often; put the comparisons in that order.
-        //
-        // Save eqns[i + 1][LT_POS] in local variable.
-        if (eqns[i][LT_POS]) {
-            if (!eqns[i + 1][LT_POS]) {
-                min = i + 1;
-            }
-        } else if (!eqns[i + 1][LT_POS]) {
-            if (eqns[i][B_POS] > eqns[i + 1][B_POS]) {
-                min = i + 1;
-            }
+        EQN_T* eqn1 = eqns[i];
+        EQN_T* eqn2 = eqns[i + 1];
+
+        if (eqn2[LT_POS])
+        {
+            continue;
+        }
+
+        if (eqn1[LT_POS] || eqn1[B_POS] > eqn2[B_POS])
+        {
+            min = i + 1;
         }
     }
-    return min;
+    return eqns[min];
 }
  
 /**
@@ -111,34 +116,22 @@ void divide_equations_fast(EQN_T** eqns, INT_T coeff)
         // the most often; put the comparisons in that order.
         // 
         // Save eqns[i][A_POS and B_POS] in local variables (if in the branches).
-        if (coeff)
+        EQN_T* div;
+        if (!(div = eqns[i][(coeff ? B_POS : A_POS)]))
         {
-            if (eqns[i][B_POS] == 0)
-            {
-                continue;
-            }
-            
-            if (eqns[i][B_POS] < 0)
-            {
-                eqns[i][LT_POS] = !eqns[i][LT_POS];
-            }
-            eqns[i][A_POS] /= eqns[i][B_POS];
-            eqns[i][C_POS] /= eqns[i][B_POS];
-            eqns[i][B_POS] = 1;
-        } else {
-            if (eqns[i][A_POS] == 0)
-            {
-                continue;
-            }
-            
-            if (eqns[i][A_POS] < 0)
-            {
-                eqns[i][LT_POS] = !eqns[i][LT_POS];
-            }
-            eqns[i][B_POS] /= eqns[i][A_POS];
-            eqns[i][C_POS] /= eqns[i][A_POS];
-            eqns[i][A_POS] = 1;
+            continue;
         }
+        EQN_T* eqn = eqns[i];
+        if (*div < 0)
+        {
+            eqn[LT_POS] = !eqn[LT_POS];
+        }
+        
+        // Division can be made faster. Shift if division by even number.
+        // I.e. check if last bit is 0, then just shift.
+        eqn[A_POS] /= div;
+        eqn[B_POS] /= div;
+        eqn[C_POS] /= div;
     }
 }
 
@@ -152,7 +145,6 @@ void divide_equations_fast(EQN_T** eqns, INT_T coeff)
  */
 void swap_equations_fast(EQN_T **x, EQN_T **y)
 {
-    // GCC inlines for you?
     EQN_T *t = *x;
     *x = *y;
     *y = t;
@@ -178,14 +170,19 @@ void sort_bubble_equation_fast(EQN_T** eqns)
     {
         for (b = 0; b < LEN - a - 1; ++b)
         {
-            if (eqns[b][B_POS] == 0) {
-                swap_equations_fast(&eqns[b], &eqns[b + 1]);
-            } else if (eqns[b + 1][B_POS] > 0 && eqns[b][B_POS] < 0) {
-                swap_equations_fast(&eqns[b], &eqns[b + 1]);
-            } else if (eqns[b][B_POS] * eqns[b + 1][B_POS] > 0 &&
-                    eqns[b + 1][B_POS] < eqns[b][B_POS]) {
+            EQN_T* eqn1 = &eqns[b];
+            EQN_T* eqn2 = &eqns[b + 1];
+            
+            if (eqn1[B_POS] == 0) {
+                swap_equations_fast(&eqn1, &eqn2);
+                
+            // Check first bit to see gtz and ltz.
+            } else if (eqn2[B_POS] > 0 && eqn1[B_POS] < 0) {
+                swap_equations_fast(&eqn1, &eqn2);
+            } else if (eqn1[B_POS] * eqn2[B_POS] > 0 &&
+                    eqn2[B_POS] < eqn1[B_POS]) {
 
-                swap_equations_fast(&eqns[b], &eqns[b + 1]);
+                swap_equations_fast(&eqn1, &eqn2);
             }
         }
     }
@@ -194,16 +191,25 @@ void sort_bubble_equation_fast(EQN_T** eqns)
 /**
  *
  */
-void add_minimum_equation_to_positive_fast(EQN_T** eqns, EQN_T* eqn)
+void add_minimum_equation_to_positive_fast(EQN_T** eqns, EQN_T* minEqn)
 {
     INT_T i;
     // TODO can this for-loop be optimized?
     for (i = 0; i < LEN; ++i)
     {
-        if (eqns[i][LT_POS] && eqns[i][B_POS] > 0) {
-            (eqns[i][A_POS]) = eqns[i][A_POS] - eqn[A_POS];
-            (eqns[i][B_POS]) = eqns[i][B_POS] - eqn[B_POS];
-            (eqns[i][C_POS]) = eqns[i][C_POS] - eqn[C_POS];
+        EQN_T* eqn = eqns[i];
+        if (!eqn[LT_POS])
+        {
+            continue;
+        }
+        
+        EQN_T* b = &eqn[B_POS];
+        if (*b > 0) {
+            EQN_T* a = &eqn[A_POS];
+            EQN_T* c = &eqn[C_POS];
+            *a = *a - minEqn[A_POS];
+            *b = *b - minEqn[B_POS];
+            *c = *c - minEqn[C_POS];
         }
     }
 }
@@ -216,34 +222,28 @@ void add_minimum_equation_to_positive_fast(EQN_T** eqns, EQN_T* eqn)
  */
 void find_constraints_fast(EQN_T **eqns)
 {
-    EQN_T *min;
-    EQN_T *max;
-    
-    *min = FLT_MAX;
-    *max = FLT_MIN;
-    
-    // TODO.
-    // Make sure iteration is only performed over positive equations.
-    // Save eqns[i][C_POS] in local variable.
+    EQN_T min = FLT_MAX;
+    EQN_T max = FLT_MIN;
+
     INT_T i;
     for (i = 0; i < LEN; ++i)
     {
-        if (!(eqns[i][LT_POS] && eqns[i][B_POS] > 0))
+        EQN_T* eqn = eqns[i];
+        EQN_T* c = &eqn[C_POS];
+        if (eqn == minEqn || !eqn[A_POS] && !eqn[B_POS] && !(*c))
         {
             continue;
         }
         
-        if (eqns[i][LT_POS]) {
-            if (*max < eqns[i][C_POS]) {
-                *max = eqns[i][C_POS];
-            }
-        } else {
-            if (*min > eqns[i][C_POS]) {
-                *min = eqns[i][C_POS];
-            }
+        if (eqn[LT_POS] && max < (*c)) {
+            max = *c;
+            continue;
+        }
+        if (min > (*c)) {
+            min = *c;
         }
     }
-    printf("Solution found in the interval [%.02lf, %.02lf].\n", *min, *max);
+    printf("Solution found in the interval [%.02f, %.02f].\n", min, max);
 }
 
 void zmk_fast_debug(EQN_T** eqns)
