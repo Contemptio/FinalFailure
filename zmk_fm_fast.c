@@ -3,20 +3,14 @@
 
 #include "eqn.c"
 #include "util.c"
-#include <float.h>
+#include <short.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-
-/*
- *  The number of equations.
- */
-#define LEN (5)
 
 /*
  *  Type macros for easily changing.
  */
-#define EQN_T float
+#define EQN_T short
 #define INT_T unsigned short
 /*
  *  Position macros for coefficients and the 'lt-flag.'
@@ -41,14 +35,13 @@
  *          The equations to which to add eqn.
  *  @param eqn
  *          The index of the equation which to add to the rest.
+ *  @param len
+ *          The number of equations.
  */
-void add_eqn_to_set_fast(EQN_T **eqns, EQN_T* minEqn)
+void add_eqn_to_set_fast(EQN_T **eqns, EQN_T* minEqn, INT_T len)
 {
-    // TODO.
-    // Save data from eqns[eqn] in local variables and
-    // use them instead.
     INT_T i;
-    for (i = 0; i < LEN; ++i)
+    for (i = 0; i < len; ++i)
     {
         EQN_T* eqn = eqns[i];
         if (!eqn[LT_POS])
@@ -70,18 +63,17 @@ void add_eqn_to_set_fast(EQN_T **eqns, EQN_T* minEqn)
  *
  *  @param eqns
  *          The equations among which to search.
+ *  @param len
+ *          The number of equations.
  *  @return
  *          the index of the equation with the lowest coefficient of b.
  */
-INT_T minimum_equation_fast(EQN_T** eqns)
+INT_T minimum_equation_fast(EQN_T** eqns, INT_T len)
 {
     INT_T min = 0;
     INT_T i;
-    for (i = 0; i < LEN - 1; ++i)
+    for (i = 0; i < len - 1; ++i)
     {
-        // TODO.
-        // Manually check source files to see which comparisons hold true
-        // the most often; put the comparisons in that order.
         EQN_T* eqn1 = eqns[i];
         EQN_T* eqn2 = eqns[i + 1];
 
@@ -100,22 +92,22 @@ INT_T minimum_equation_fast(EQN_T** eqns)
  
 /**
  *  Divides each equation in an array with a specified coefficient.
+ *  <p>
+ *  I first considered making division faster with bit-shifting, but
+ *  as I gathered it, the optimizer handles that on its own...
  *
  *  @param eqns
  *          The equations on which to perform the division.
+ *  @param len
+ *          The number of equations.
  *  @param coeff
  *          The specified coefficient (0 -> a, !0 -> b).
  */
-void divide_equations_fast(EQN_T** eqns, INT_T coeff)
+void divide_equations_fast(EQN_T** eqns, INT_T len, INT_T coeff)
 {
     INT_T i;
-    for (i = 0; i < LEN; ++i)
+    for (i = 0; i < len; ++i)
     {
-        // TODO.
-        // Manually check source files to see which comparisons hold true
-        // the most often; put the comparisons in that order.
-        // 
-        // Save eqns[i][A_POS and B_POS] in local variables (if in the branches).
         EQN_T* div;
         if (!(div = eqns[i][(coeff ? B_POS : A_POS)]))
         {
@@ -127,8 +119,6 @@ void divide_equations_fast(EQN_T** eqns, INT_T coeff)
             eqn[LT_POS] = !eqn[LT_POS];
         }
         
-        // Division can be made faster. Shift if division by even number.
-        // I.e. check if last bit is 0, then just shift.
         eqn[A_POS] /= div;
         eqn[B_POS] /= div;
         eqn[C_POS] /= div;
@@ -155,28 +145,23 @@ void swap_equations_fast(EQN_T **x, EQN_T **y)
  *
  *  @param eqns
  *          The equations to sort.
+ *  @param len
+ *          The number of equations.
  */
-void sort_bubble_equation_fast(EQN_T** eqns)
+void sort_bubble_equation_fast(EQN_T** eqns, INT_T len)
 {
     INT_T a, b;
-    
-    // TODO.
-    // Very likely that these for-loops can be optimized.
-    //
-    // Save eqns[b][B_POS] in local variable.
-    // Same for eqns[b + 1][B_POS].
-    // Sign comparison is the fastest this way? Consider if and if.
-    for (a = 0; a < LEN; ++a)
+
+    for (a = 0; a < len; ++a)
     {
-        for (b = 0; b < LEN - a - 1; ++b)
+        for (b = 0; b < len - a - 1; ++b)
         {
             EQN_T* eqn1 = &eqns[b];
             EQN_T* eqn2 = &eqns[b + 1];
             
             if (eqn1[B_POS] == 0) {
                 swap_equations_fast(&eqn1, &eqn2);
-                
-            // Check first bit to see gtz and ltz.
+
             } else if (eqn2[B_POS] > 0 && eqn1[B_POS] < 0) {
                 swap_equations_fast(&eqn1, &eqn2);
             } else if (eqn1[B_POS] * eqn2[B_POS] > 0 &&
@@ -189,13 +174,21 @@ void sort_bubble_equation_fast(EQN_T** eqns)
 }
 
 /**
+ *  Adds the selected minimum equation to all positive equations.
  *
+ *  @param eqns
+ *          The set of equations.
+ *  @param minEqn
+ *          The minimum equation.
+ *  @param len
+ *          The number of equations.
  */
-void add_minimum_equation_to_positive_fast(EQN_T** eqns, EQN_T* minEqn)
+void add_minimum_equation_to_positive_fast(EQN_T** eqns,
+        EQN_T* minEqn, INT_T len)
 {
     INT_T i;
-    // TODO can this for-loop be optimized?
-    for (i = 0; i < LEN; ++i)
+
+    for (i = 0; i < len; ++i)
     {
         EQN_T* eqn = eqns[i];
         if (!eqn[LT_POS])
@@ -220,13 +213,13 @@ void add_minimum_equation_to_positive_fast(EQN_T** eqns, EQN_T* minEqn)
  *  @param eqns
  *          The set of equations.
  */
-void find_constraints_fast(EQN_T **eqns)
+INT_T find_constraints_fast(EQN_T **eqns, INT_T len)
 {
     EQN_T min = FLT_MAX;
     EQN_T max = FLT_MIN;
 
     INT_T i;
-    for (i = 0; i < LEN; ++i)
+    for (i = 0; i < len; ++i)
     {
         EQN_T* eqn = eqns[i];
         EQN_T* c = &eqn[C_POS];
@@ -246,20 +239,50 @@ void find_constraints_fast(EQN_T **eqns)
     printf("Solution found in the interval [%.02f, %.02f].\n", min, max);
 }
 
-void zmk_fast_debug(EQN_T** eqns)
+/**
+ *  Attempts to perform Fourier-Motzkin elimination as fast as possible.
+ *
+ *  @param eqns
+ *          The set of equations on which to perform
+ *          Fourier-Motzkin elimination.
+ *  @return
+ *          Non-zero integer if a solution was found, zero otherwise.
+ */
+INT_T zmk_fast(EQN_T** eqns, INT_T len)
 {
-    printf("[ZMK_FAST]: NOT YET IMPLEMENTED.\n");
-    return;
-    
-    sort_bubble_equation_fast(eqns);
-    divide_equations_fast(eqns, 1);
-    // TODO.
-    // Sort out which equations are positive in divide_equations_fast,
-    // return that result as an array of indices (INT_T).
+    sort_bubble_equation_fast(eqns, len);
+    divide_equations_fast(eqns, len, 1);
     add_minimum_equation_to_positive_fast(eqns,
-            eqns[minimum_equation_fast(eqns)]);
-    divide_equations_fast(eqns, 0);
-    find_constraints_fast(eqns);
+            eqns[minimum_equation_fast(eqns)], len);
+    divide_equations_fast(eqns, len, 0);
+    return find_constraints_fast(eqns, len);
+}
+
+INT_T zmk_fast_debug(EQN_T** eqns, INT_T len)
+{
+    sort_bubble_equation_fast(eqns, len);
+    printf("Sorted equations.\n");
+    print_eqn_matrix(eqns, len);
+
+    divide_equations_fast(eqns, len, 1);
+    printf("Divided equations.\n");
+    print_eqn_matrix(eqns, len);
+    
+    EQN_T* minEqn = minimum_equation_fast(eqns, len);
+    printf("Selected smallest equation.\n");
+    print_eqn_array(minEqn);
+    
+    add_minimum_equation_to_positive_fast(eqns, minEqn, len);
+    printf("Added minimum equation to positive equations.\n");
+    print_eqn_matrix(eqns, len);
+            
+    divide_equations_fast(eqns, len, 0);
+    printf("Divided equations again.\n");
+    print_eqn_matrix(eqns, len);
+    
+    find_constraints_fast(eqns, minEqn, len);
+    printf("Found constraints.\n");
+    print_eqn_matrix(eqns, len);
 }
 
 #endif

@@ -3,19 +3,14 @@
 
 #include "eqn.c"
 #include "util.c"
-#include <float.h>
+#include <short.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 /*
- *  The number of equations.
- */
-#define LEN (5)
-
-/*
  *  Type macros for easily changing types.
  */
-#define EQN_T float
+#define EQN_T short
 #define INT_T unsigned short
 /*
  *  Position macros for coefficients and the "lt-flag."
@@ -31,14 +26,16 @@
  *
  *  @param eqns
  *          The equations among which to search.
+ *  @param len
+ *          The number of equations.
  *  @return
  *          a pointer to the minimum equation.
  */
-EQN_T* minimum_equation_small(EQN_T** eqns)
+EQN_T* minimum_equation_small(EQN_T** eqns, INT_T len)
 {
     INT_T min = 0;
     INT_T i;
-    for (i = 0; i < LEN - 1; ++i)
+    for (i = 0; i < len - 1; ++i)
     {
         if (eqns[i][LT_POS]) {
             if (!eqns[i + 1][LT_POS]) {
@@ -55,21 +52,22 @@ EQN_T* minimum_equation_small(EQN_T** eqns)
  
 /**
  *  Divides each equation in an array with a specified coefficient.
+ *  <p>
+ *  I first considered making division faster with bit-shifting, but
+ *  as I gathered it, the optimizer handles that on its own...
  *
  *  @param eqns
  *          The equations on which to perform the division.
+ *  @param len
+ *          The number of equations.
  *  @param coeff
  *          The specified coefficient (0: a, !0: b).
  */
-void divide_equations_small(EQN_T** eqns, INT_T coeff)
+void divide_equations_small(EQN_T** eqns, INT_T len, INT_T coeff)
 {
     INT_T i;
-    for (i = 0; i < LEN; ++i)
+    for (i = 0; i < len; ++i)
     {
-        /*
-         *  The {@code coeff} operator is purely a selection of
-         *  which coefficient to divide with.
-         */
         if (coeff)
         {
             if (eqns[i][B_POS] == 0)
@@ -121,14 +119,16 @@ void swap_equations_small(EQN_T **x, EQN_T **y)
  *
  *  @param eqns
  *          The equations to sort.
+ *  @param len
+ *          The number of equations.
  */
-void sort_bubble_equation_small(EQN_T** eqns)
+void sort_bubble_equation_small(EQN_T** eqns, INT_T len)
 {
     INT_T a, b;
     
-    for (a = 0; a < LEN; ++a)
+    for (a = 0; a < len; ++a)
     {
-        for (b = 0; b < LEN - a - 1; ++b)
+        for (b = 0; b < len - a - 1; ++b)
         {
             if (eqns[b][B_POS] == 0) {
                 swap_equations_small(&eqns[b], &eqns[b + 1]);
@@ -150,11 +150,14 @@ void sort_bubble_equation_small(EQN_T** eqns)
  *          The set of equations.
  *  @param minEqn
  *          The minimum equation.
+ *  @param len
+ *          The number of equations.
  */
-void add_minimum_equation_to_positive_small(EQN_T** eqns, EQN_T* minEqn)
+void add_minimum_equation_to_positive_small(EQN_T** eqns,
+        EQN_T* minEqn, INT_T len)
 {
     INT_T i;
-    for (i = 0; i < LEN; ++i)
+    for (i = 0; i < len; ++i)
     {
         /*
          *  If this is the minimum equation, ignore.
@@ -181,14 +184,18 @@ void add_minimum_equation_to_positive_small(EQN_T** eqns, EQN_T* minEqn)
  *          The set of equations.
  *  @param minEqn
  *          The minimum equation.
+ *  @param len
+ *          The number of equations.
+ *  @return
+ *          Non-zero integer if a solution was found, zero otherwise.
  */
-void find_constraints_small(EQN_T **eqns, EQN_T *minEqn)
+INT_T find_constraints_small(EQN_T **eqns, EQN_T *minEqn, INT_T len)
 {
     EQN_T min = FLT_MAX;
     EQN_T max = FLT_MIN;
 
     INT_T i;
-    for (i = 0; i < LEN; ++i)
+    for (i = 0; i < len; ++i)
     {
         /*
          *  Second expression in the else-statement is to manage the same
@@ -211,7 +218,8 @@ void find_constraints_small(EQN_T **eqns, EQN_T *minEqn)
             }
         }
     }
-    printf("Solution found in the interval [%.02f, %.02f].\n", min, max);
+    
+    return !(min == FLT_MAX || max == FLT_MIN);
 }
 
 /**
@@ -224,14 +232,19 @@ void find_constraints_small(EQN_T **eqns, EQN_T *minEqn)
  *  @param eqns
  *          The set of equations on which to perform
  *          Fourier-Motzkin elimination.
+ *  @param len
+ *          The number of equations.
+ *  @return
+ *          Non-zero integer if a solution was found, zero otherwise.
  */
-void zmk_small(EQN_T** eqns)
+INT_T zmk_small(EQN_T** eqns, INT_T len)
 {
-    sort_bubble_equation_small(eqns);
-    divide_equations_small(eqns, 1);
-    add_minimum_equation_to_positive_small(eqns, minimum_equation_small(eqns));
-    divide_equations_small(eqns, 0);
-    find_constraints_small(eqns, minimum_equation_small(eqns));
+    sort_bubble_equation_small(eqns, len);
+    divide_equations_small(eqns, len, 1);
+    add_minimum_equation_to_positive_small(eqns,
+            minimum_equation_small(eqns, len), len);
+    divide_equations_small(eqns, len, 0);
+    return find_constraints_small(eqns, minimum_equation_small(eqns, len), len);
 }
 
 /**
@@ -240,33 +253,35 @@ void zmk_small(EQN_T** eqns)
  *  @param eqns
  *          The set of equations on which to perform
  *          Fourier-Motzkin elimination.
+ *  @param len
+ *          The number of equations.
  *  @see {@link zmk_small(EQN_T**)}.
  */
-void zmk_small_debug(EQN_T** eqns)
+void zmk_small_debug(EQN_T** eqns, INT_T len)
 {
-    sort_bubble_equation_small(eqns);
+    sort_bubble_equation_small(eqns, len);
     printf("Sorted equations.\n");
-    print_float_matrix(eqns);
+    print_eqn_matrix(eqns, len);
 
-    divide_equations_small(eqns, 1);
+    divide_equations_small(eqns, len, 1);
     printf("Divided equations.\n");
-    print_float_matrix(eqns);
+    print_eqn_matrix(eqns, len);
     
-    EQN_T* minEqn = minimum_equation_small(eqns);
+    EQN_T* minEqn = minimum_equation_small(eqns, len);
     printf("Selected smallest equation.\n");
-    print_float_array(minEqn);
+    print_eqn_array(minEqn);
     
-    add_minimum_equation_to_positive_small(eqns, minEqn);
+    add_minimum_equation_to_positive_small(eqns, minEqn, len);
     printf("Added minimum equation to positive equations.\n");
-    print_float_matrix(eqns);
+    print_eqn_matrix(eqns, len);
             
-    divide_equations_small(eqns, 0);
+    divide_equations_small(eqns, len, 0);
     printf("Divided equations again.\n");
-    print_float_matrix(eqns);
+    print_eqn_matrix(eqns, len);
     
-    find_constraints_small(eqns, minEqn);
+    find_constraints_small(eqns, minEqn, len);
     printf("Found constraints.\n");
-    print_float_matrix(eqns);
+    print_eqn_matrix(eqns, len);
 }
 
 #endif

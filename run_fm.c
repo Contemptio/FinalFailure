@@ -13,58 +13,66 @@
 #define NAME_FAST "zmk_fast"
 #define NAME_SMALL "zmk_small"
 
-#define EQN_T float
-#define SCANF_FORMAT "%f %f"
+#define EQN_T short
+#define SCANF_FORMAT "%d %d"
 #define BUF_SIZ (50)
 #define LEN     (5)
 #define VARS    (4)
 
- /**
-  * Reads a file into a float array. The file is expected to have an isolated
-  * number on each line.
-  *
-  * @param path
-  *         Path to the file to read.
-  * @return
-  *         Pointer to the float array.
-  */
- EQN_T* parse_float_array(char* path)
- {
-    FILE *file = file_open(path);
-    
+/**
+ *  Free the equation matrix.
+ */
+free_eqns(EQN_T** eqns)
+{
+    size_t i;
+    for (i = 0; i < LEN; ++i) {
+        free(eqns[i]);
+    }
+    free(eqns);
+}
+
+/**
+* Reads a file into an EQN_T array. The file is expected to have an isolated
+* number on each line.
+*
+* @param path
+*         Path to the file to read.
+* @return
+*         Pointer to the EQN_T array.
+*/
+EQN_T* parse_eqn_array(FILE* path)
+{
     EQN_T *arr = (EQN_T *) malloc(sizeof(EQN_T) * LEN);
     int i;
-    
+
     for (i = 0; i < LEN; ++i)
     {
         fscanf(file, "%f", &arr[i]);
     }
-    
-    file_close(file);
+
     return arr;
- }
- 
-  /**
-  * Reads a file into an equation block. The first file is expected to have two
-  * numbers on each line delimited by a singular space, the other file is
-  * expected to have an isolated number on each line.
-  *
-  * @param pathA
-  *         Path to the file to read containing the coefficients of x and y.
-  * @param pathC
-  *         Path to the file to read containing the constant solutions to the
-  *         relational equations.
-  * @return
-  *         Pointer to the equation block.
-  */
-EQN_T** parse_eqns_numerical(char *pathA, char *pathC)
+}
+
+/**
+* Reads a file into an equation block. The first file is expected to have two
+* numbers on each line delimited by a singular space, the other file is
+* expected to have an isolated number on each line.
+*
+* @param pathA
+*         The file to read containing the coefficients of x and y.
+* @param pathC
+*         The file to read containing the constant solutions to the
+*         relational equations.
+* @return
+*         Pointer to the equation block.
+*/
+EQN_T** parse_eqns_numerical(FILE* pathA, FILE* pathC)
 {
-    FILE *fileA = file_open(pathA);
-    EQN_T* cs = parse_float_array(pathC);
-    
+    EQN_T* cs = parse_eqn_array(pathC);
+
     int i;
     EQN_T** pairs = (EQN_T **) malloc(sizeof(EQN_T *) * LEN);
-    
+
     for (i = 0; i < LEN; ++i)
     {
         pairs[i] = (EQN_T *) malloc(sizeof(EQN_T) * 4);
@@ -73,26 +81,24 @@ EQN_T** parse_eqns_numerical(char *pathA, char *pathC)
         pairs[i][2] = cs[i];
         pairs[i][3] = 1;
     }
-    
-    file_close(fileA);
     free(cs);
-    
+
     return pairs;
 }
- 
- /**
-  * Reads a file into an equation array. The first file is expected to have two
-  * numbers on each line delimited by a singular space, the other file is
-  * expected to have an isolated number on each line.
-  *
-  * @param pathA
-  *         Path to the file to read containing the coefficients of x and y.
-  * @param pathC
-  *         Path to the file to read containing the constant solutions to the
-  *         relational equations.
-  * @return
-  *         Pinter to the equation array.
-  */
+
+/**
+* Reads a file into an equation array. The first file is expected to have two
+* numbers on each line delimited by a singular space, the other file is
+* expected to have an isolated number on each line.
+*
+* @param pathA
+*         Path to the file to read containing the coefficients of x and y.
+* @param pathC
+*         Path to the file to read containing the constant solutions to the
+*         relational equations.
+* @return
+*         Pinter to the equation array.
+*/
 equation_t** parse_eqns(char *pathA, char *pathC)
 {
     EQN_T** d = parse_eqns_numerical(pathA, pathC);
@@ -110,6 +116,8 @@ equation_t** parse_eqns(char *pathA, char *pathC)
 }
 
 /**
+ *  Used for own debugging, ignore.
+ *  <p>
  *  This program takes one argument, which is the path to a directory containing
  *  the files 'A', 'c', and 'result.' It reads the files 'A' and 'c', creates
  *  equation objects from them, and solves the set of relational equations
@@ -147,7 +155,7 @@ int main(int argc, char** argv)
             zmk_small_debug(eqns);
         }
         
-        free_float_matrix(eqns, LEN);
+        free_eqn_matrix(eqns, LEN);
     } else {
         printf("regular.\n");
         equation_t** eqns = parse_eqns(A, c);
