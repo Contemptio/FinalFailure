@@ -7,9 +7,13 @@
 /*
  *  My includes and defines.
  */
-#include "run_fm.c"
-#include "zmk_fm_fast.c"
-#define N_FILES (6)
+#include "coeff.h"
+
+EQN_T*** parseSystem(FILE*, FILE*, INT_T*, INT_T*);
+INT_T zmkFast(EQN_T***, INT_T, INT_T);
+INT_T zmkFastDebug(EQN_T***, INT_T, INT_T);
+void freeSystem(EQN_T**, INT_T);
+void printSystem(EQN_T**, INT_T, INT_T);
 
 static unsigned long long   fm_count;
 static volatile bool        proceed = false;
@@ -20,7 +24,7 @@ static void done(int unused)
     unused = unused;
 }
     
-unsigned long long name_fm(char* aname, char* cname, int seconds)
+unsigned long long zmk_fm_fast(char* aname, char* cname, int seconds)
 {
     FILE*       afile = fopen(aname, "r");
     FILE*       cfile = fopen(cname, "r");
@@ -40,7 +44,9 @@ unsigned long long name_fm(char* aname, char* cname, int seconds)
     /*
      *  Read A and c files.
      */
-    EQN_T** eqns = parse_eqns_numerical(afile, cfile);
+    INT_T* nEqn = malloc(sizeof(INT_T));
+    INT_T* nVar = malloc(sizeof(INT_T));
+    EQN_T*** eqns = parseSystem(afile, cfile, nEqn, nVar);
 
     fclose(afile);
     fclose(cfile);
@@ -48,21 +54,28 @@ unsigned long long name_fm(char* aname, char* cname, int seconds)
     if (seconds == 0) {
         /* Just run once for validation. */
             
-        return zmk_fast(eqns);
+        INT_T res = zmkFastDebug(eqns, *nEqn, *nVar);
+        free(nEqn);
+        free(nVar);
+        return res;
     }
 
-    /* Tell operating system to call function DONE when an ALARM comes. */
+    /*
+     *  Tell operating system to call function DONE when an ALARM comes.
+     */
     signal(SIGALRM, done);
     alarm(seconds);
 
-    /* Now loop until the alarm comes... */
+    /*
+     *  Now loop until the alarm comes...
+     */
     proceed = true;
     while (proceed) {
-        zmk_fast(eqns);
-
+        zmkFastDebug(eqns, *nEqn, *nVar);
         fm_count++;
     }
-    free_eqns(eqns);
 
+    free(nEqn);
+    free(nVar);
     return fm_count;
 }

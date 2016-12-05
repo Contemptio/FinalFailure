@@ -1,12 +1,12 @@
-CFLAGS  = -g -Wall -Wextra -Werror -std=c99
+CFLAGS	= -g -Wall -Wextra -Werror -std=c99
 
-CC  = gcc
+CC	= gcc
 OUT = fm
-OBJS    = main.o fast.o small.o
+OBJS	= main.o coeff.o util.o fast.o
 
 all: $(OBJS)
-    $(CC) $(CFLAGS) $(OBJS) -o $(OUT)
-    ./fm 1
+	$(CC) $(CFLAGS) $(OBJS) -o $(OUT)
+	./fm 1
 
 clean:
-    rm -f $(OUT) $(OBJS) *.gcda small fast
+	rm -f $(OUT) $(OBJS) *.gcda small fast

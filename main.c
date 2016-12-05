@@ -32,7 +32,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-unsigned long long zmk_fm(char* aname, char* cname, int seconds);
+/*
+ *  My includes.
+ */
+#include "coeff.h"
+#include "util.h"
+#include "run_fm.c"
+#include "zmk_fm_fast.c"
+
+unsigned long long zmk_fm_fast(char* aname, char* cname, int seconds);
 
 #define ENTRY(id)   { .name = #id, .func = id, }
 #define NAME_WIDTH  (20)
@@ -45,7 +53,7 @@ static struct fm {
     unsigned long long  (*func)(char*, char*, int);
     unsigned long long  count;
 } fm[] = { 
-    ENTRY(zmk_fm),
+    ENTRY(zmk_fm_fast)
 };
 
 static unsigned int correct[] = { 1, 0, 1, 0, 0, 0 };
@@ -86,10 +94,10 @@ int main(int argc, char** argv)
     nfunc = sizeof fm/sizeof fm[0];
 
     for (i = 0; i < nfunc; ++i) {
-
         pass = 0;
 
         for (j = 0; j < ntest; ++j) {
+
             snprintf(a, sizeof a, "input/%zu/A", j);
             snprintf(c, sizeof c, "input/%zu/c", j);
 
@@ -104,6 +112,7 @@ int main(int argc, char** argv)
                     fm[i].name, j, result,
                     correct[j] ? "a" : "no");
             }
+
         }
 
         if (pass < ntest)

@@ -4,13 +4,6 @@
 #include <signal.h>
 #include <unistd.h>
 
-/*
- *  My includes and defines.
- */
-#include "run_fm.c"
-#include "zmk_fm_small.c"
-#define N_FILES (6)
-
 static unsigned long long   fm_count;
 static volatile bool        proceed = false;
 
@@ -20,11 +13,13 @@ static void done(int unused)
     unused = unused;
 }
     
-unsigned long long name_fm(char* aname, char* cname, int seconds)
+unsigned long long zmk_fm_small(char* aname, char* cname, int seconds)
 {
     FILE*       afile = fopen(aname, "r");
     FILE*       cfile = fopen(cname, "r");
 
+    printf("Got here.\n");
+    
     fm_count = 0;
 
     if (afile == NULL) {
@@ -37,18 +32,13 @@ unsigned long long name_fm(char* aname, char* cname, int seconds)
         exit(1);
     }
 
-    /*
-     *  Read A and c files.
-     */
-    EQN_T** eqns = parse_eqns_numerical(afile, cfile);
-
     fclose(afile);
     fclose(cfile);
 
     if (seconds == 0) {
         /* Just run once for validation. */
             
-        return zmk_small(eqns);
+        return 0;
     }
 
     /* Tell operating system to call function DONE when an ALARM comes. */
@@ -58,11 +48,8 @@ unsigned long long name_fm(char* aname, char* cname, int seconds)
     /* Now loop until the alarm comes... */
     proceed = true;
     while (proceed) {
-        zmk_small(eqns);
-
         fm_count++;
     }
-    free_eqns(eqns);
 
     return fm_count;
 }
