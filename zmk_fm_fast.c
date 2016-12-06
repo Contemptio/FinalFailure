@@ -40,6 +40,19 @@ void printIntegerArray(INT_T* array, INT_T len, char* name)
  * =========== */
 
 /**
+ *  Allocates memory for a new system of equations.
+ *  <p>
+ *  @param nEqn
+ *          The number of equations in the system.
+ *  @return
+ *          A pointer to the memory allocated for the system.
+ */
+EQN_T*** newSystem(INT_T nEqn)
+{
+    return (EQN_T***) malloc(sizeof(EQN_T**) * nEqn);
+}
+
+/**
  *  Allocates memory for a new equation.
  *  <p>
  *  @param nVar
@@ -49,19 +62,6 @@ void printIntegerArray(INT_T* array, INT_T len, char* name)
 EQN_T** newEquation(INT_T nVar)
 {
     return (EQN_T**) malloc(sizeof(EQN_T*) * (nVar + 1));
-}
-
-/**
- *  Allocates memory for a new system of equations.
- *  <p>
- *  @param nEqn
- *          The number of equations in the system.
- *  @return
- *          A pointer to the memory allocated for the system.
- */
-EQN_T*** newEquationMatrix(INT_T nEqn)
-{
-    return (EQN_T***) malloc(sizeof(EQN_T**) * nEqn);
 }
 
 /**
@@ -76,17 +76,61 @@ EQN_T*** newEquationMatrix(INT_T nEqn)
  *          A new equation object containing the same coefficients
  *          as {@code eqn}.
  */
-EQN_T** copyEquation(EQN_T** eqn, INT_T coeffPos)
+EQN_T** copyEquation(EQN_T** eqn, INT_T nVar)
 {
-    EQN_T** newEqn = newEquation(coeffPos + 1);
+    EQN_T** newEqn = newEquation(nVar);
+    INT_T i;
+    for (i = 0; i < nVar; ++i)
+    {
+        newEqn[i] = copyCoeff(eqn[i]);
+    }
+
+    return newEqn;
+}
+
+/**
+ *  Copies an equation.
+ *  <p>
+ *  @param eqn
+ *          The equation to reduce.
+ *  @param coeffPos
+ *          The index of the coefficient most recently used to divide
+ *          each equation.
+ *  @return
+ *          A new equation object containing the same coefficients
+ *          as {@code eqn}.
+ */
+EQN_T** reduceEquation(EQN_T** eqn, INT_T coeffPos)
+{
+    EQN_T** newEqn = newEquation(coeffPos);
+
     INT_T i;
     for (i = 0; i < coeffPos; ++i)
     {
         newEqn[i] = copyCoeff(eqn[i]);
     }
-
     newEqn[i] = copyCoeff(eqn[coeffPos + 1]);
+
     return newEqn;
+}
+
+/**
+ *  Straight copy of the system of equations.
+ *
+ *  @param eqns
+ *          The system to copy.
+ *  @return
+ *          A copy of the system.
+ */
+EQN_T*** copySystem(EQN_T*** eqns, INT_T nEqn, INT_T nVar)
+{
+    INT_T i;
+    EQN_T*** newEqns = newSystem(nEqn);
+    for (i = 0; i < nEqn; ++i)
+    {
+        newEqns[i] = copyEquation(eqns[i], nVar);
+    }
+    return newEqns;
 }
 
 /**
@@ -200,26 +244,29 @@ INT_T checkConstraints(EQN_T*** eqns, INT_T* negIndices,
  *  @param nEqn
  *          A pointer to an integer containing the number of equations in the
  *          equation system. This value is updated within this function.
+ *  @param coeffPos
+ *          The index of the coefficient most recently used to divide
+ *          each equation.
  */
 INT_T divideEquations(EQN_T*** eqns, INT_T* negIndices,
         INT_T* posIndices, INT_T* nNeg, INT_T* nPos,
-        INT_T nEqn, INT_T coeffVar)
+        INT_T nEqn, INT_T coeffPos)
 {
     INT_T i;
     INT_T j;
-    INT_T cPos = coeffVar + 1;
+    INT_T cPos = coeffPos + 1;
 
     for (i = 0; i < nEqn; ++i)
     {
         EQN_T** eqn = eqns[i];
-        EQN_T* div = eqn[coeffVar];
+        EQN_T* div = eqn[coeffPos];
 
         if (!div->nom) {
             posIndices[(*nPos)++] = i;
             continue;
         }
 
-        for (j = 0; j < coeffVar; ++j)
+        for (j = 0; j < coeffPos; ++j)
         {
             divCoeff(eqns[i][j], div);
         }
@@ -230,7 +277,7 @@ INT_T divideEquations(EQN_T*** eqns, INT_T* negIndices,
         } else {
             posIndices[(*nPos)++] = i;
         }
-        eqns[i][coeffVar]->nom = eqns[i][coeffVar]->denom = 1;
+        eqns[i][coeffPos]->nom = eqns[i][coeffPos]->denom = 1;
     }
     if (!(*nNeg) && !(*nPos))
     {
@@ -271,14 +318,14 @@ void pairEquations(EQN_T**** eqns, INT_T* negIndices, INT_T* posIndices,
 
     INT_T p = 0;
     
-    EQN_T*** newEqns = newEquationMatrix(!nNeg ? nPos : nNeg * nPos);
+    EQN_T*** newEqns = newSystem(!nNeg ? nPos : nNeg * nPos);
     
     for(i = 0; i < nPos; ++i)
     {
 
         EQN_T** pos = (*eqns)[posIndices[i]];
         if (pos[coeffPos]->nom == 0) {
-            newEqns[p++] = copyEquation(pos, coeffPos);
+            newEqns[p++] = reduceEquation(pos, coeffPos);
             continue;
         }
         
@@ -287,7 +334,7 @@ void pairEquations(EQN_T**** eqns, INT_T* negIndices, INT_T* posIndices,
             EQN_T** neg = (*eqns)[negIndices[j]];
             if (neg[coeffPos]->nom == 0)
             {
-                newEqns[p++] = copyEquation(neg, coeffPos);
+                newEqns[p++] = reduceEquation(neg, coeffPos);
                 printEquation(newEqns[p - 1], coeffPos + 2);
                 continue;
             }
@@ -375,6 +422,7 @@ INT_T zmkFast(EQN_T*** eqns, INT_T nEqn, INT_T nVar)
  */
 INT_T zmkFastDebug(EQN_T*** eqns, INT_T nEqn, INT_T nVar)
 {
+    //EQN_T*** eqns = copySystem(originalEqns, nEqn, nVar);
     printf("Received equations:\n");
     printSystem(eqns, nEqn, nVar + 1);
     INT_T i;
