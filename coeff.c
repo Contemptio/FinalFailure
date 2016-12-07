@@ -40,19 +40,6 @@ void fixSign(EQN_T* coeff)
 }
 
 /**
- *  Copies a coefficient.
- *
- *  @param coeff
- *          The coefficient to copy.
- *  @return
- *          A new coefficient object with the same values as {@code coeff}.
- */
-EQN_T* copyCoeff(EQN_T* coeff)
-{
-    return newCoeff(coeff->nom, coeff->denom);
-}
-
-/**
  *  Allocates memory for a new coefficient.
  *
  *  @param nom
@@ -68,6 +55,22 @@ EQN_T* newCoeff(INT_T nom, INT_T denom)
     coeff->nom = nom;
     coeff->denom = denom;
     return coeff;
+}
+
+/**
+ *  Copies a coefficient.
+ *
+ *  @param coeff
+ *          The coefficient to copy.
+ *  @return
+ *          A new coefficient object with the same values as {@code coeff}.
+ */
+EQN_T* copyCoeff(EQN_T* coeff)
+{
+    EQN_T* copy = newCoeff(0, 0);
+    copy->nom = coeff->nom;
+    copy->denom = coeff->denom;
+    return copy;
 }
 
 /* ============= *

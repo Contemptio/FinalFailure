@@ -44,19 +44,17 @@ unsigned long long zmk_fm_fast(char* aname, char* cname, int seconds)
     /*
      *  Read A and c files.
      */
-    INT_T* nEqn = malloc(sizeof(INT_T));
-    INT_T* nVar = malloc(sizeof(INT_T));
-    EQN_T*** eqns = parseSystem(afile, cfile, nEqn, nVar);
-
-    fclose(afile);
-    fclose(cfile);
+    INT_T nEqn = 0;
+    INT_T nVar = 0;
 
     if (seconds == 0) {
         /* Just run once for validation. */
-            
-        INT_T res = zmkFastDebug(eqns, *nEqn, *nVar);
-        free(nEqn);
-        free(nVar);
+        
+        EQN_T*** eqns = parseSystem(afile, cfile, &nEqn, &nVar);
+        INT_T res = zmkFastDebug(eqns, nEqn, nVar);
+
+        fclose(afile);
+        fclose(cfile);
         return res;
     }
 
@@ -71,11 +69,11 @@ unsigned long long zmk_fm_fast(char* aname, char* cname, int seconds)
      */
     proceed = true;
     while (proceed) {
-        zmkFastDebug(eqns, *nEqn, *nVar);
+        EQN_T*** eqns = parseSystem(afile, cfile, &nEqn, &nVar);
+        zmkFastDebug(eqns, nEqn, nVar);
         fm_count++;
     }
-
-    free(nEqn);
-    free(nVar);
+    fclose(afile);
+    fclose(cfile);
     return fm_count;
 }

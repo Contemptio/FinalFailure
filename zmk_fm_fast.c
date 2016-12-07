@@ -216,8 +216,7 @@ INT_T checkConstraints(EQN_T*** eqns, INT_T* negIndices,
             cmp = -evalCoeff(eqns[posIndices[i]][1]);
             qi = qi < cmp ? cmp : qj;
         }
-        
-        printf("Max(qi) = %f, Max(qj) = %f\n", qi, qj);
+
         return qj != FLT_MIN && qj < qi;
 }
 
@@ -335,7 +334,6 @@ void pairEquations(EQN_T**** eqns, INT_T* negIndices, INT_T* posIndices,
             if (neg[coeffPos]->nom == 0)
             {
                 newEqns[p++] = reduceEquation(neg, coeffPos);
-                printEquation(newEqns[p - 1], coeffPos + 2);
                 continue;
             }
             
@@ -362,8 +360,8 @@ void pairEquations(EQN_T**** eqns, INT_T* negIndices, INT_T* posIndices,
  */
 INT_T zmkFast(EQN_T*** eqns, INT_T nEqn, INT_T nVar)
 {
-    printSystem(eqns, nEqn, nVar + 1);
     INT_T i;
+    INT_T n = nEqn;
     INT_T currVar;
     INT_T nNeg = 0;
     INT_T nPos = 0;
@@ -377,11 +375,11 @@ INT_T zmkFast(EQN_T*** eqns, INT_T nEqn, INT_T nVar)
         nPos = 0;
         currVar = nVar - i - 1;
         
-        negIndices = (INT_T*) malloc(sizeof(INT_T) * nEqn);
-        posIndices = (INT_T*) malloc(sizeof(INT_T) * nEqn);
+        negIndices = (INT_T*) malloc(sizeof(INT_T) * n);
+        posIndices = (INT_T*) malloc(sizeof(INT_T) * n);
         
         divideEquations(eqns, negIndices, posIndices, &nNeg, &nPos,
-                nEqn, currVar);
+                n, currVar);
         
         if (currVar == 0)
         {
@@ -389,16 +387,16 @@ INT_T zmkFast(EQN_T*** eqns, INT_T nEqn, INT_T nVar)
         }
         
         pairEquations(&eqns, negIndices, posIndices, nNeg, nPos,
-            &nEqn, currVar);
+            &n, currVar);
         
         free(negIndices);
         free(posIndices);
     }
 
     res = checkConstraints(eqns, negIndices, posIndices, nNeg,
-            nPos, nEqn);
+            nPos, n);
     
-    freeSystem(eqns, nEqn, currVar + 1);
+    freeSystem(eqns, n, currVar + 2);
     free(negIndices);
     free(posIndices);
     
@@ -422,10 +420,11 @@ INT_T zmkFast(EQN_T*** eqns, INT_T nEqn, INT_T nVar)
  */
 INT_T zmkFastDebug(EQN_T*** eqns, INT_T nEqn, INT_T nVar)
 {
-    //EQN_T*** eqns = copySystem(originalEqns, nEqn, nVar);
+    //EQN_T*** eqns = copySystem(origEqns, nEqn, nVar);
     printf("Received equations:\n");
     printSystem(eqns, nEqn, nVar + 1);
     INT_T i;
+    INT_T n = nEqn;
     INT_T currVar;
     INT_T nNeg = 0;
     INT_T nPos = 0;
@@ -439,16 +438,16 @@ INT_T zmkFastDebug(EQN_T*** eqns, INT_T nEqn, INT_T nVar)
         nPos = 0;
         currVar = nVar - i - 1;
         
-        negIndices = (INT_T*) malloc(sizeof(INT_T) * nEqn);
-        posIndices = (INT_T*) malloc(sizeof(INT_T) * nEqn);
+        negIndices = (INT_T*) malloc(sizeof(INT_T) * n);
+        posIndices = (INT_T*) malloc(sizeof(INT_T) * n);
         
         printf("Dividing for coeff %hu\n", currVar);
         divideEquations(eqns, negIndices, posIndices, &nNeg, &nPos,
-                nEqn, currVar);
+                n, currVar);
 
         printIntegerArray(negIndices, nNeg, "Negative");
         printIntegerArray(posIndices, nPos, "Positive");
-        printSystem(eqns, nEqn, currVar + 2);
+        printSystem(eqns, n, currVar + 2);
         
         if (currVar == 0)
         {
@@ -456,17 +455,17 @@ INT_T zmkFastDebug(EQN_T*** eqns, INT_T nEqn, INT_T nVar)
         }
         
         pairEquations(&eqns, negIndices, posIndices, nNeg, nPos,
-            &nEqn, currVar);
+            &n, currVar);
         
         free(negIndices);
         free(posIndices);
         
-        printSystem(eqns, nEqn, currVar + 1);
-        printf("Current number of equations: %hi\n", nEqn);
+        printSystem(eqns, n, currVar + 1);
+        printf("Current number of equations: %hi\n", n);
     }
 
     res = checkConstraints(eqns, negIndices, posIndices, nNeg,
-            nPos, nEqn);
+            nPos, n);
 
     
     if (res)
@@ -476,7 +475,7 @@ INT_T zmkFastDebug(EQN_T*** eqns, INT_T nEqn, INT_T nVar)
         printf("No solution.\n");
     }
     
-    freeSystem(eqns, nEqn, currVar + 2);
+    freeSystem(eqns, n, currVar + 2);
     free(negIndices);
     free(posIndices);
     
